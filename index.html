@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Oryn Studio</title>
 <meta name="description" content="Oryn Studio — we transform ambitious ideas into immersive digital products, brands and experiences.">
+<script>
+/* Set the opening state before first paint; the timeout restores content if setup fails. */
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches && Element.prototype.animate) {
+  document.documentElement.classList.add('oryn-entering');
+  window.orynEntranceFallback = setTimeout(function () {
+    document.documentElement.classList.remove('oryn-entering');
+  }, 3600);
+}
+</script>
 <style>
 @font-face{font-family:"Inter Tight";font-weight:400;font-style:normal;font-display:block;src:url(assets/inter-tight-400.woff2) format("woff2")}
 @font-face{font-family:"Inter Tight";font-weight:500;font-style:normal;font-display:block;src:url(assets/inter-tight-500.woff2) format("woff2")}
@@ -343,6 +352,33 @@ ul{list-style:none}
 }
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Opening states only. Removing the class restores every authored style. */
+html.oryn-entering .tag-ag,
+html.oryn-entering .avatars,
+html.oryn-entering .tag-tc,
+html.oryn-entering .chip,
+html.oryn-entering .intro,
+html.oryn-entering .reel,
+html.oryn-entering .play,
+html.oryn-entering .watch,
+html.oryn-entering .svc{opacity:0}
+html.oryn-entering .intro{clip-path:inset(0 100% 0 0)}
+@media (min-width:640px){
+  html.oryn-entering .nav,
+  html.oryn-entering #hdr-cta,
+  html.oryn-entering .gal,
+  html.oryn-entering .lap,
+  html.oryn-entering .card{opacity:0}
+  html.oryn-entering .ln1,
+  html.oryn-entering .ln2,
+  html.oryn-entering .ln3,
+  html.oryn-entering .ln4{clip-path:inset(0 0 100% 0);transform:translateY(14px)}
+}
+@media (max-width:639.98px){
+  html.oryn-entering .hdr{opacity:0}
+  html.oryn-entering .h1-wrap{clip-path:inset(0 0 100% 0);transform:translateY(10px)}
+}
 </style>
 </head>
 <body>
@@ -459,6 +495,95 @@ ul{list-style:none}
   hdr.addEventListener('click',function(e){var a=e.target.closest('a');if(a&&!a.classList.contains('brand')&&hdr.classList.contains('open'))set(false);});
   var mq=window.matchMedia('(max-width:743.98px)');
   (mq.addEventListener?mq.addEventListener.bind(mq,'change'):mq.addListener.bind(mq))(function(){set(false);});
+})();
+</script>
+<script>
+/* One finite entrance sequence. All effects are cancelled at their authored final state. */
+(function () {
+  var root = document.documentElement;
+  if (!root.classList.contains('oryn-entering')) return;
+
+  var effects = [];
+  var done = false;
+  var ease = 'cubic-bezier(.22,1,.36,1)';
+  var mobileQuery = matchMedia('(max-width:639.98px)');
+  if (mobileQuery.addEventListener) mobileQuery.addEventListener('change', finish);
+  else mobileQuery.addListener(finish);
+  function finish() {
+    if (done) return;
+    done = true;
+    clearTimeout(window.orynEntranceFallback);
+    if (mobileQuery.removeEventListener) mobileQuery.removeEventListener('change', finish);
+    else mobileQuery.removeListener(finish);
+    root.classList.remove('oryn-entering');
+    effects.forEach(function (effect) { effect.cancel(); });
+  }
+  function add(selector, frames, start, duration, visibleOnly) {
+    var element = document.querySelector(selector);
+    if (!element) return;
+    if (visibleOnly && element.getBoundingClientRect().top >= innerHeight) return;
+    effects.push(element.animate(frames, {
+      delay: start, duration: duration, easing: ease, fill: 'both'
+    }));
+  }
+  function settle(selector, start, duration, distance, visibleOnly) {
+    add(selector, [
+      {opacity: 0, transform: 'translateY(' + distance + 'px)'},
+      {opacity: 1, transform: 'none'}
+    ], start, duration, visibleOnly);
+  }
+  function start() {
+    if (!root.classList.contains('oryn-entering')) return;
+    clearTimeout(window.orynEntranceFallback);
+    window.orynEntranceFallback = setTimeout(finish, 3000);
+    try {
+      var mobile = mobileQuery.matches;
+
+      if (mobile) settle('.hdr', 40, 530, -7);
+      else {
+        settle('.nav', 40, 530, -7);
+        settle('#hdr-cta', 1110, 480, 7);
+      }
+
+      settle('.tag-ag', 170, 470, 7);
+      settle('.avatars', 280, 430, 5);
+      settle('.tag-tc', 300, 430, 5);
+
+      var typeFrames = [
+        {clipPath: 'inset(0 0 100% 0)', transform: mobile ? 'translateY(10px)' : 'translateY(14px)'},
+        {clipPath: 'inset(0 0 0% 0)', transform: 'none'}
+      ];
+      if (mobile) add('.h1-wrap', typeFrames, 340, 900);
+      else {
+        add('.ln1', typeFrames, 340, 770);
+        add('.ln2', typeFrames, 500, 750);
+        add('.ln3', typeFrames, 670, 690);
+        add('.ln4', typeFrames, 770, 780);
+      }
+
+      add('.chip-a', [{opacity: 0, transform: 'scale(.985)'}, {opacity: 1, transform: 'none'}], 880, 540);
+      add('.chip-b', [{opacity: 0, transform: 'scale(.985)'}, {opacity: 1, transform: 'none'}], 970, 540);
+      add('.intro', [
+        {opacity: 0, clipPath: 'inset(0 100% 0 0)'},
+        {opacity: 1, clipPath: 'inset(0 0% 0 0)'}
+      ], 1080, 620);
+
+      add('.reel', [{opacity: 0, transform: 'scale(.985)'}, {opacity: 1, transform: 'none'}], 970, 780, true);
+      settle('.play', 1320, 390, 5, true);
+      settle('.watch', 1290, 450, 6, true);
+      settle('.svc', 1230, 610, 9, true);
+      if (!mobile) {
+        add('.gal', [{opacity: 0, transform: 'translateY(12px) scale(.99)'}, {opacity: 1, transform: 'none'}], 1310, 790, true);
+        add('.lap', [{opacity: 0, transform: 'translateY(12px) scale(.99)'}, {opacity: 1, transform: 'none'}], 1420, 780, true);
+        settle('.card', 1510, 670, 11, true);
+      }
+
+      Promise.all(effects.map(function (effect) { return effect.finished.catch(function () {}); })).then(finish, finish);
+    } catch (error) {
+      finish();
+    }
+  }
+  Promise.resolve(document.fonts.ready).then(start, finish);
 })();
 </script>
 </body>
